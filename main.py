@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import argparse
 import re
@@ -8,6 +10,9 @@ from colorama import init, Fore, Style
 from readability import Document
 import requests
 import argcomplete
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import WordCompleter
+import datetime
 
 # Initialize colorama
 init(autoreset=True)
@@ -97,21 +102,76 @@ def extract_content_from_url(url):
 def list_prompts():
     prompt_dir = Path('prompts')
     prompts = [d.name for d in prompt_dir.iterdir() if d.is_dir()]
-    print_info("Available prompts:")
-    for prompt in prompts:
-        print(prompt)
+    print_info("\nAvailable prompts:")
+    for i, prompt in enumerate(prompts, 1):
+        print(f"{i}. {prompt}")
+    print("")
+    return prompts
 
 def prompt_completer(prefix, **kwargs):
     prompt_dir = Path('prompts')
     return (d.name for d in prompt_dir.iterdir() if d.is_dir() and d.name.startswith(prefix))
 
+def select_prompt():
+    prompts = list_prompts()
+    completer = WordCompleter(prompts + [str(i) for i in range(1, len(prompts) + 1)])
+    
+    while True:
+        user_input = prompt("Select a prompt (number or name): ", completer=completer)
+        
+        if user_input.isdigit():
+            index = int(user_input) - 1
+            if 0 <= index < len(prompts):
+                return prompts[index]
+        elif user_input in prompts:
+            return user_input
+        
+        print_error("Invalid selection. Please try again.")
+
+def save_output(content, filename=None, path=None):
+    if not filename:
+        filename = f"output_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+    
+    if path:
+        full_path = Path(path) / filename
+    else:
+        full_path = Path(filename)
+    
+    try:
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(full_path, 'w') as file:
+            file.write(content)
+        print_success(f"Output saved to: {full_path}")
+    except IOError as e:
+        print_error(f"Error saving output: {e}")
+
+def process_url_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            urls = file.read().splitlines()
+        
+        content = ""
+        for url in urls:
+            print_info(f"Extracting content from URL: {url}")
+            url_content = extract_content_from_url(url)
+            if url_content:
+                content += f"\n\nURL: {url}\n{url_content}"
+        
+        return content
+    except IOError as e:
+        print_error(f"Error reading URL file: {e}")
+        return None
+
 def main():
     parser = argparse.ArgumentParser(description="CLI tool for LLM processing with anonymization")
     parser.add_argument("-i", "--input", help="User input or file path")
     parser.add_argument("-f", "--file", help="Input file path")
-    parser.add_argument("-p", "--prompt", default="ai", help="Prompt title (default: ai)").completer = prompt_completer
+    parser.add_argument("-p", "--prompt", help="Prompt title").completer = prompt_completer
     parser.add_argument("-l", "--list", action="store_true", help="List available prompts")
     parser.add_argument("-u", "--url", help="URL to extract content from")
+    parser.add_argument("-uf", "--url-file", help="File containing URLs to process")
+    parser.add_argument("-o", "--output", nargs='?', const='', help="Save output to file (optional filename)")
+    parser.add_argument("-op", "--output-path", help="Path to save the output file")
     
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
@@ -120,8 +180,8 @@ def main():
         list_prompts()
         return
 
-    if not args.input and not args.file and not args.url:
-        print_error("Error: Please provide either input text, a file path, or a URL.")
+    if not args.input and not args.file and not args.url and not args.url_file:
+        print_error("Error: Please provide either input text, a file path, a URL, or a file containing URLs.")
         return
 
     content = args.input
@@ -135,8 +195,18 @@ def main():
         content = extract_content_from_url(args.url)
         if content is None:
             return
+    elif args.url_file:
+        print_info(f"Processing URLs from file: {args.url_file}")
+        content = process_url_file(args.url_file)
+        if content is None:
+            return
 
-    prompt = get_prompt(args.prompt)
+    if not args.prompt:
+        selected_prompt = select_prompt()
+    else:
+        selected_prompt = args.prompt
+
+    prompt = get_prompt(selected_prompt)
     if prompt is None:
         return
 
@@ -151,6 +221,9 @@ def main():
         print("")
         pyperclip.copy(final_content)
         print_info("Output copied to clipboard.")
+        
+        if args.output is not None:
+            save_output(final_content, args.output, args.output_path)
     else:
         print_warning("No content to display due to processing error.")
 
