@@ -1,92 +1,108 @@
-# Prompter
+# LLM Processing CLI Tool
 
-## LLM Processing Tool with Anonymization
+This CLI tool processes text input using the Anthropic API, with support for anonymization, file input, URL content extraction, and custom prompts.
 
-> This tool processes content using the Anthropic API with customizable prompts and anonymization features.
-It supports input from text, files, or URLs, and provides a user-friendly command-line interface.
+## Features
 
-### Key Features
-- Content anonymization and de-anonymization
-- Custom prompt selection
-- Input from text, file, or URL
-- Colorized console output
-- Clipboard integration for easy output copying
+- Process text input or file content with Anthropic's Claude LLM
+- Anonymize sensitive information in the input
+- Extract content from URLs or process multiple URLs from a file
+- Use custom prompts stored in a local directory
+- Save output to a file
+- Copy output to clipboard automatically
 
-### Usage
-python script_name.py [-h] [-i INPUT] [-f FILE] [-p PROMPT] [-l] [-u URL]
+## Installation
 
-### Dependencies
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/llm-processing-cli.git
+   cd llm-processing-cli
+   ```
+
+2. Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+3. Set up your Anthropic API key as an environment variable:
+   ```
+   export ANTHROPIC_API_KEY=your_api_key_here
+   ```
+
+## Usage
+
+```
+python3 llm_processor.py [-h] [-i INPUT] [-f FILE] [-p PROMPT] [-l] [-u URL] [-uf URL_FILE] [-o [OUTPUT]] [-op OUTPUT_PATH]
+```
+
+### Arguments
+
+- `-h`, `--help`: Show help message and exit
+- `-i INPUT`, `--input INPUT`: User input text
+- `-f FILE`, `--file FILE`: Input file path
+- `-p PROMPT`, `--prompt PROMPT`: Prompt title
+- `-l`, `--list`: List available prompts
+- `-u URL`, `--url URL`: URL to extract content from
+- `-uf URL_FILE`, `--url-file URL_FILE`: File containing URLs to process
+- `-o [OUTPUT]`, `--output [OUTPUT]`: Save output to file (optional filename)
+- `-op OUTPUT_PATH`, `--output-path OUTPUT_PATH`: Path to save the output file
+
+### Examples
+
+1. Process input text:
+   ```
+   python3 llm_processor.py -i "Your input text here"
+   ```
+
+2. Process a file:
+   ```
+   python3 llm_processor.py -f input.txt
+   ```
+
+3. Extract and process content from a URL:
+   ```
+   python3 llm_processor.py -u https://example.com
+   ```
+
+4. Process multiple URLs from a file:
+   ```
+   python3 llm_processor.py -uf urls.txt
+   ```
+
+5. Use a specific prompt:
+   ```
+   python3 llm_processor.py -i "Your input" -p custom_prompt
+   ```
+
+6. Save output to a file:
+   ```
+   python3 llm_processor.py -i "Your input" -o output.md
+   ```
+
+## Prompt Structure
+
+Custom prompts should be stored in the `prompts` directory, with each prompt in its own subdirectory containing a `system.md` file.
+
+Example:
+```
+prompts/
+  custom_prompt/
+    system.md
+```
+
+## Anonymization
+
+Sensitive information in the input can be anonymized by enclosing it in double asterisks:
+```
+This is a **sensitive** piece of information.
+```
+
+## Dependencies
+
 - anthropic
 - pyperclip
 - colorama
 - readability-lxml
 - requests
 - argcomplete
-
-### Installation Guide
-
-Below guide explains how to install a Python tool so it can be called from anywhere in PowerShell or terminal.
-
-#### Windows
-
-1. Ensure your Python script has a shebang line:
-   At the top of your Python file, add:
-   ```python
-   #!/usr/bin/env python3
-   ```
-
-2. Rename the script (optional):
-   You might want to rename it without the .py extension for easier calling:
-   ```
-   ren your_script.py your_script
-   ```
-
-3. Create a directory for your scripts:
-   ```
-   mkdir C:\Users\YourUsername\Scripts
-   ```
-
-4. Move your script to this directory.
-
-5. Add the directory to your PATH:
-   - Open PowerShell as administrator
-   - Run the following command:
-     ```powershell
-     [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\YourUsername\Scripts", "User")
-     ```
-   - Close and reopen PowerShell for changes to take effect
-
-Now you should be able to call your script from anywhere in PowerShell.
-
-#### Linux/Mac
-
-1. Ensure your Python script has a shebang line:
-   At the top of your Python file, add:
-   ```python
-   #!/usr/bin/env python3
-   ```
-
-2. Make the script executable:
-   ```bash
-   chmod +x your_script.py
-   ```
-
-3. Rename the script (optional):
-   ```bash
-   mv your_script.py your_script
-   ```
-
-4. Move the script to a directory in your PATH:
-   ```bash
-   sudo mv your_script /usr/local/bin
-   ```
-
-5. If you prefer not to use /usr/local/bin, you can create a new directory and add it to your PATH:
-   ```bash
-   mkdir ~/bin
-   mv your_script ~/bin
-   echo 'export PATH=$PATH:~/bin' >> ~/.bashrc
-   source ~/.bashrc
-   ```
-
-Now you should be able to call your script from anywhere in the terminal.
+- prompt_toolkit
