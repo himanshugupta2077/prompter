@@ -1,6 +1,10 @@
 # LLM Processing CLI Tool
+> Inspired by [fabric](https://github.com/danielmiessler/fabric) by Daniel Miessler.
 
 This CLI tool processes text input using the Anthropic API, with support for anonymization, file input, URL content extraction, and custom prompts.
+
+## Philosophy
+- This tool was inspired by the concept of fabric and aims to streamline repetitive LLM-based tasks. It allows users to leverage pre-written prompts for various operations on different types of input (text, files, URLs, or lists of URLs). The core idea is that well-crafted prompts lead to better results, and this CLI tool makes it easy to apply these prompts consistently across various input sources, enhancing productivity and ensuring consistent output quality for frequently performed LLM operations.
 
 ## Features
 
