@@ -1,0 +1,9 @@
+anthropic
+pyperclip
+colorama
+# readability
+readability-lxml
+lxml_html_clean
+requests
+argcomplete
+prompt_toolkit
