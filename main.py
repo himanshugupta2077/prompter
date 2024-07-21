@@ -2,8 +2,12 @@ import os
 import argparse
 import re
 import anthropic
+import pyperclip
 from pathlib import Path
 from colorama import init, Fore, Style
+from readability import Document
+import requests
+import argcomplete
 
 # Initialize colorama
 init(autoreset=True)
@@ -76,21 +80,48 @@ def process_with_anthropic(content, selected_prompt):
             ]
         )
         processed_content = message.content[0].text
-        # print_success("Processing complete.")
         return processed_content
     except Exception as e:
         print_error(f"Error processing with Anthropic API: {e}")
         return None
 
+def extract_content_from_url(url):
+    try:
+        response = requests.get(url)
+        doc = Document(response.text)
+        return doc.summary()
+    except Exception as e:
+        print_error(f"Error extracting content from URL: {e}")
+        return None
+
+def list_prompts():
+    prompt_dir = Path('prompts')
+    prompts = [d.name for d in prompt_dir.iterdir() if d.is_dir()]
+    print_info("Available prompts:")
+    for prompt in prompts:
+        print(prompt)
+
+def prompt_completer(prefix, **kwargs):
+    prompt_dir = Path('prompts')
+    return (d.name for d in prompt_dir.iterdir() if d.is_dir() and d.name.startswith(prefix))
+
 def main():
     parser = argparse.ArgumentParser(description="CLI tool for LLM processing with anonymization")
     parser.add_argument("-i", "--input", help="User input or file path")
     parser.add_argument("-f", "--file", help="Input file path")
-    parser.add_argument("-p", "--prompt", default="ai", help="Prompt title (default: ai)")
+    parser.add_argument("-p", "--prompt", default="ai", help="Prompt title (default: ai)").completer = prompt_completer
+    parser.add_argument("-l", "--list", action="store_true", help="List available prompts")
+    parser.add_argument("-u", "--url", help="URL to extract content from")
+    
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    if not args.input and not args.file:
-        print_error("Error: Please provide either input text or a file path.")
+    if args.list:
+        list_prompts()
+        return
+
+    if not args.input and not args.file and not args.url:
+        print_error("Error: Please provide either input text, a file path, or a URL.")
         return
 
     content = args.input
@@ -99,23 +130,27 @@ def main():
         content = read_file(args.file)
         if content is None:
             return
+    elif args.url:
+        print_info(f"Extracting content from URL: {args.url}")
+        content = extract_content_from_url(args.url)
+        if content is None:
+            return
 
-    # print_info(f"Using prompt: {args.prompt}")
     prompt = get_prompt(args.prompt)
     if prompt is None:
         return
 
-    # print_info("Anonymizing sensitive text...")
     anonymized_content, placeholders = anonymize_sensitive_text(content)
     
     processed_content = process_with_anthropic(anonymized_content, prompt)
 
     if processed_content:
-        # print_info("Deanonymizing processed content...")
         final_content = deanonymize_text(processed_content, placeholders)
-        print_success("Response from claude LLM:\n")
-        print(final_content)  # This is the LLM output, so we don't color it
+        print_success("Response from Claude LLM:\n")
+        print(final_content)
         print("")
+        pyperclip.copy(final_content)
+        print_info("Output copied to clipboard.")
     else:
         print_warning("No content to display due to processing error.")
 
