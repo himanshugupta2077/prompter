@@ -97,12 +97,3 @@ Sensitive information in the input can be anonymized by enclosing it in double a
 This is a **sensitive** piece of information.
 ```
 
-## Dependencies
-
-- anthropic
-- pyperclip
-- colorama
-- readability-lxml
-- requests
-- argcomplete
-- prompt_toolkit
