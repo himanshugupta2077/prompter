@@ -1,4 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
+
+# nano ~/.bashrc
+# export ANTHROPIC_API_KEY=
+# source ~/.bashrc
+
+# run me from anywhere:
+# chmod +x prompter.py
+# mv prompter.py prompter
+# sudo cp prompter /usr/local/bin/
 
 import os
 import argparse
@@ -16,6 +25,18 @@ import datetime
 
 # Initialize colorama
 init(autoreset=True)
+
+# Global variable for prompt directory
+PROMPT_DIR = Path('prompts')
+
+def get_prompt(prompt_title):
+    prompt_file = PROMPT_DIR / prompt_title / 'system.md'
+    try:
+        with open(prompt_file, 'r') as file:
+            return file.read()
+    except IOError as e:
+        print_error(f"Error reading prompt file: {e}")
+        return None
 
 def print_info(message):
     print(f"{Fore.CYAN}{message}{Style.RESET_ALL}")
@@ -100,8 +121,7 @@ def extract_content_from_url(url):
         return None
 
 def list_prompts():
-    prompt_dir = Path('prompts')
-    prompts = [d.name for d in prompt_dir.iterdir() if d.is_dir()]
+    prompts = [d.name for d in PROMPT_DIR.iterdir() if d.is_dir()]
     print_info("\nAvailable prompts:")
     for i, prompt in enumerate(prompts, 1):
         print(f"{i}. {prompt}")
@@ -109,8 +129,7 @@ def list_prompts():
     return prompts
 
 def prompt_completer(prefix, **kwargs):
-    prompt_dir = Path('prompts')
-    return (d.name for d in prompt_dir.iterdir() if d.is_dir() and d.name.startswith(prefix))
+    return (d.name for d in PROMPT_DIR.iterdir() if d.is_dir() and d.name.startswith(prefix))
 
 def select_prompt():
     prompts = list_prompts()
@@ -163,6 +182,8 @@ def process_url_file(file_path):
         return None
 
 def main():
+    global PROMPT_DIR
+    
     parser = argparse.ArgumentParser(description="CLI tool for LLM processing with anonymization")
     parser.add_argument("-i", "--input", help="User input or file path")
     parser.add_argument("-f", "--file", help="Input file path")
@@ -172,9 +193,16 @@ def main():
     parser.add_argument("-uf", "--url-file", help="File containing URLs to process")
     parser.add_argument("-o", "--output", nargs='?', const='', help="Save output to file (optional filename)")
     parser.add_argument("-op", "--output-path", help="Path to save the output file")
+    parser.add_argument("-ap", "--add-prompt", help="Additional prompt text to append")
+    parser.add_argument("-np", "--new-prompt", help="Use a custom prompt directly")
+    parser.add_argument("-pd", "--prompt-dir", help="Set custom prompt directory")
     
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
+
+    if args.prompt_dir:
+        PROMPT_DIR = Path(args.prompt_dir)
+        print_info(f"Using custom prompt directory: {PROMPT_DIR}")
 
     if args.list:
         list_prompts()
@@ -201,14 +229,20 @@ def main():
         if content is None:
             return
 
-    if not args.prompt:
-        selected_prompt = select_prompt()
+    if args.new_prompt:
+        prompt = args.new_prompt
     else:
-        selected_prompt = args.prompt
+        if not args.prompt:
+            selected_prompt = select_prompt()
+        else:
+            selected_prompt = args.prompt
 
-    prompt = get_prompt(selected_prompt)
-    if prompt is None:
-        return
+        prompt = get_prompt(selected_prompt)
+        if prompt is None:
+            return
+
+        if args.add_prompt:
+            prompt += f"\n{args.add_prompt}"
 
     anonymized_content, placeholders = anonymize_sensitive_text(content)
     
