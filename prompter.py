@@ -33,12 +33,18 @@ import argcomplete
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import WordCompleter
 import datetime
+import sys
 
 # Initialize colorama
 init(autoreset=True)
 
 # Global variable for prompt directory
-PROMPT_DIR = Path('prompts')
+PROMPT_DIR = Path('/home/wsl_ubuntu/prompter/prompts')
+
+def get_input_from_pipe():
+    if not sys.stdin.isatty():
+        return sys.stdin.read().strip()
+    return None
 
 def get_prompt(prompt_title):
     prompt_file = PROMPT_DIR / prompt_title / 'system.md'
@@ -88,7 +94,7 @@ def read_file(file_path):
         return None
 
 def get_prompt(prompt_title):
-    prompt_dir = Path('prompts') / prompt_title
+    prompt_dir = PROMPT_DIR / prompt_title
     system_file = prompt_dir / 'system.md'
     try:
         with open(system_file, 'r') as file:
@@ -219,12 +225,13 @@ def main():
         list_prompts()
         return
 
-    if not args.input and not args.file and not args.url and not args.url_file:
-        print_error("Error: Please provide either input text, a file path, a URL, or a file containing URLs.")
-        return
-
-    content = args.input
-    if args.file:
+    # Check for piped input first
+    piped_input = get_input_from_pipe()
+    if piped_input:
+        content = piped_input
+    elif args.input:
+        content = args.input
+    elif args.file:
         print_info(f"Reading input from file: {args.file}")
         content = read_file(args.file)
         if content is None:
@@ -239,6 +246,9 @@ def main():
         content = process_url_file(args.url_file)
         if content is None:
             return
+    else:
+        print_error("Error: Please provide either input text, a file path, a URL, a file containing URLs, or pipe input to the script.")
+        return
 
     if args.new_prompt:
         prompt = args.new_prompt
