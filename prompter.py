@@ -1,13 +1,24 @@
 #!/usr/bin/python3
 
+# ADD API KEY TO BASHRC
 # nano ~/.bashrc
 # export ANTHROPIC_API_KEY=
 # source ~/.bashrc
 
-# run me from anywhere:
+# RUN ME FROM ANYWWHERE
 # chmod +x prompter.py
 # mv prompter.py prompter
 # sudo cp prompter /usr/local/bin/
+# set the PROMPT_DIR value
+# ex: PROMPT_DIR=/home/wsl_ubuntu/prompter/prompts
+# source ~/.bashrc
+
+# COPY PASTE WIZARD
+# sudo apt install xclip
+# Put this in your ~/.bashrc or ~/.zshrc:
+# alias c='xclip -selection clipboard'
+# alias p='xclip -selection clipboard -o'
+# source ~/.bashrc
 
 import os
 import argparse
