@@ -8,10 +8,14 @@
 # RUN ME FROM ANYWWHERE
 # chmod +x prompter.py
 # mv prompter.py prompter
+# sed -i 's/\r$//' prompter
 # sudo cp prompter /usr/local/bin/
 # set the PROMPT_DIR value
 # ex: PROMPT_DIR=/home/wsl_ubuntu/prompter/prompts
 # source ~/.bashrc
+
+# CHANGE FORMAT IF ISSUE
+# sed -i 's/\r$//' /usr/local/bin/prompter
 
 # COPY PASTE WIZARD
 # sudo apt install xclip
