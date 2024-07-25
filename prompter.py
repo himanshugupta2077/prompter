@@ -34,30 +34,24 @@ from colorama import init, Fore, Style
 from readability import Document
 import requests
 import argcomplete
-from prompt_toolkit import prompt
-from prompt_toolkit.completion import WordCompleter
 import datetime
 import sys
 
 # Initialize colorama
 init(autoreset=True)
 
-# Global variable for prompt directory
-PROMPT_DIR = Path('/home/wsl_ubuntu/prompter/prompts')
+def get_script_directory():
+    return Path(__file__).parent.resolve()
+
+def list_prompts():
+    script_dir = get_script_directory()
+    prompts = [f.stem for f in script_dir.glob('*.md') if f.stem.lower() != 'readme']
+    return sorted(prompts)
 
 def get_input_from_pipe():
     if not sys.stdin.isatty():
         return sys.stdin.read().strip()
     return None
-
-def get_prompt(prompt_title):
-    prompt_file = PROMPT_DIR / prompt_title / 'system.md'
-    try:
-        with open(prompt_file, 'r') as file:
-            return file.read()
-    except IOError as e:
-        print_error(f"Error reading prompt file: {e}")
-        return None
 
 def print_info(message):
     print(f"{Fore.CYAN}{message}{Style.RESET_ALL}")
@@ -98,17 +92,16 @@ def read_file(file_path):
         return None
 
 def get_prompt(prompt_title):
-    prompt_dir = PROMPT_DIR / prompt_title
-    system_file = prompt_dir / 'system.md'
+    script_dir = get_script_directory()
+    prompt_file = script_dir / f"{prompt_title}.md"
     try:
-        with open(system_file, 'r') as file:
+        with open(prompt_file, 'r') as file:
             return file.read()
     except IOError as e:
         print_error(f"Error reading prompt file: {e}")
         return None
 
 def process_with_anthropic(content, selected_prompt):
-    print_info("Processing...")
     try:
         client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
         prompt = f"""
@@ -141,41 +134,14 @@ def extract_content_from_url(url):
         print_error(f"Error extracting content from URL: {e}")
         return None
 
-def list_prompts():
-    prompts = [d.name for d in PROMPT_DIR.iterdir() if d.is_dir()]
-    print_info("\nAvailable prompts:")
-    for i, prompt in enumerate(prompts, 1):
-        print(f"{i}. {prompt}")
-    print("")
-    return prompts
-
 def prompt_completer(prefix, **kwargs):
-    return (d.name for d in PROMPT_DIR.iterdir() if d.is_dir() and d.name.startswith(prefix))
+    return (prompt for prompt in list_prompts() if prompt.startswith(prefix))
 
-def select_prompt():
-    prompts = list_prompts()
-    completer = WordCompleter(prompts + [str(i) for i in range(1, len(prompts) + 1)])
-    
-    while True:
-        user_input = prompt("Select a prompt (number or name): ", completer=completer)
-        
-        if user_input.isdigit():
-            index = int(user_input) - 1
-            if 0 <= index < len(prompts):
-                return prompts[index]
-        elif user_input in prompts:
-            return user_input
-        
-        print_error("Invalid selection. Please try again.")
-
-def save_output(content, filename=None, path=None):
+def save_output(content, filename=None):
     if not filename:
         filename = f"output_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
     
-    if path:
-        full_path = Path(path) / filename
-    else:
-        full_path = Path(filename)
+    full_path = Path(filename)
     
     try:
         full_path.parent.mkdir(parents=True, exist_ok=True)
@@ -203,33 +169,32 @@ def process_url_file(file_path):
         return None
 
 def main():
-    global PROMPT_DIR
-    
     parser = argparse.ArgumentParser(description="CLI tool for LLM processing with anonymization")
     parser.add_argument("-i", "--input", help="User input or file path")
     parser.add_argument("-f", "--file", help="Input file path")
     parser.add_argument("-p", "--prompt", help="Prompt title").completer = prompt_completer
-    parser.add_argument("-l", "--list", action="store_true", help="List available prompts")
     parser.add_argument("-u", "--url", help="URL to extract content from")
     parser.add_argument("-uf", "--url-file", help="File containing URLs to process")
     parser.add_argument("-o", "--output", nargs='?', const='', help="Save output to file (optional filename)")
-    parser.add_argument("-op", "--output-path", help="Path to save the output file")
     parser.add_argument("-ap", "--add-prompt", help="Additional prompt text to append")
     parser.add_argument("-np", "--new-prompt", help="Use a custom prompt directly")
-    parser.add_argument("-pd", "--prompt-dir", help="Set custom prompt directory")
+    parser.add_argument("-c", "--copy", action="store_true", help="Copy output to clipboard")
+    parser.add_argument("-l", "--list", action="store_true", help="List available prompts")
     
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
-    if args.prompt_dir:
-        PROMPT_DIR = Path(args.prompt_dir)
-        print_info(f"Using custom prompt directory: {PROMPT_DIR}")
-
     if args.list:
-        list_prompts()
+        prompts = list_prompts()
+        print_info("Available prompts:")
+        for prompt in prompts:
+            print(prompt)
         return
 
-    # Check for piped input first
+    if not args.prompt and not args.new_prompt:
+        print_error("Error: Please provide either a prompt title (-p) or a new prompt (-np).")
+        return
+
     piped_input = get_input_from_pipe()
     if piped_input:
         content = piped_input
@@ -257,12 +222,7 @@ def main():
     if args.new_prompt:
         prompt = args.new_prompt
     else:
-        if not args.prompt:
-            selected_prompt = select_prompt()
-        else:
-            selected_prompt = args.prompt
-
-        prompt = get_prompt(selected_prompt)
+        prompt = get_prompt(args.prompt)
         if prompt is None:
             return
 
@@ -278,11 +238,12 @@ def main():
         print_success("Response from Claude LLM:\n")
         print(final_content)
         print("")
-        pyperclip.copy(final_content)
-        print_info("Output copied to clipboard.")
+        
+        if args.copy:
+            pyperclip.copy(final_content)
         
         if args.output is not None:
-            save_output(final_content, args.output, args.output_path)
+            save_output(final_content, args.output)
     else:
         print_warning("No content to display due to processing error.")
 
