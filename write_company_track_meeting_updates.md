@@ -39,15 +39,4 @@ Other:
 # INPUT:
 
 INPUT:
-pentest:
-conducted web app private pentest, shared 20 updates points (tejas)
-found 4 issues, reported them (tejas)
 
-sme
-Explained Command injection video to aishwarya for storyboard (himanshu)
-Reviewed transcript for video by Varun (tejas)
-
-other
-gave Pratiksha questionnaire for 4 new assets (IOT, AI/ML, Blockchain, Automobile) (himanshu)
-took 1 product security eng interview (selected) (himanshu)
-finalize and shared web+api sample pentest report to BD team (himanshu & tejas)
