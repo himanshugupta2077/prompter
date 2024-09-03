@@ -37,6 +37,3 @@ Other:
     - Himanshu and Tejas finalized and shared the web+API sample pentest report with the BD team.
 
 # INPUT:
-
-INPUT:
-
