@@ -40,6 +40,22 @@ import sys
 # Initialize colorama
 init(autoreset=True)
 
+def get_multiline_input():
+    print("Enter your input (press Enter twice to finish):")
+    lines = []
+    empty_lines = 0
+    while True:
+        line = input()
+        if line.strip() == "":
+            empty_lines += 1
+            if empty_lines == 2:
+                print_info("Processing Input...\n")
+                break
+        else:
+            empty_lines = 0
+        lines.append(line)
+    return "\n".join(lines[:-2])  # Remove the last two empty lines
+
 def get_script_directory():
     return Path(__file__).parent.resolve()
 
@@ -180,7 +196,7 @@ def main():
     parser.add_argument("-np", "--new-prompt", help="Use a custom prompt directly")
     parser.add_argument("-c", "--copy", action="store_true", help="Copy output to clipboard")
     parser.add_argument("-l", "--list", action="store_true", help="List available prompts")
-    
+
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
@@ -216,8 +232,7 @@ def main():
         if content is None:
             return
     else:
-        print_error("Error: Please provide either input text, a file path, a URL, a file containing URLs, or pipe input to the script.")
-        return
+        content = get_multiline_input()
 
     if args.new_prompt:
         prompt = args.new_prompt
